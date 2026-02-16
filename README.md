@@ -1,6 +1,6 @@
-# GoScanner
+# GoScan
 
-**GoScanner** is a lightweight, high-performance network service scanner written in Go.  
+**GoScan** is a lightweight, high-performance network service scanner written in Go.  
 It performs concurrent port scanning, banner grabbing, and TLS intelligence collection. Its output is colorized for readability.
 
 
@@ -25,23 +25,23 @@ It performs concurrent port scanning, banner grabbing, and TLS intelligence coll
 1. Clone the repository:
 
 ```bash
-git clone https://github.com/Panharoth06/goscanner.git
-cd goscanner
+git clone https://github.com/Panharoth06/goscan.git
+cd goscan
 ```
 
 2. Build the binary 
 ```bash
-go build -o goscanner main.go
+go build -o goscan main.go
 ```
 
 3. Run the scanner 
 ```bash
-./goscanner -d scanme.nmap.org
+goscan -d scanme.nmap.org
 ```
 
 ## Usage
 ```bash
-Usage: gorecon -d <target> [options]
+Usage: goscan -d <target> [options]
 
 Options:
   -d, -domain string        Target host or IP to scan
@@ -52,7 +52,7 @@ Options:
 
 ### Example
 ```bash
-./gorecon -d scanme.nmap.org -w 300
+goscan -d scanme.nmap.org -w 300
 ```
 
 ## Architecture 
