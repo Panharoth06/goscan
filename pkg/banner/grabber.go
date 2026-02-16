@@ -25,39 +25,39 @@ func GrabService(host string, port int) ServiceInfo {
 
 	conn.SetDeadline(time.Now().Add(readTimeout))
 
-	// Passive read
-	initial, err := readAll(conn)
-	if err == nil && len(initial) > 0 {
-		info.Banner = ParseBanner(initial)
-		info.Protocol = DetectProtocol(initial, port)
-		return info
-	}
-
-	// Decide probe
-	probe := SelectProbe(port)
-
-	// Handle TLS if likely
+	// if TLS port → handshake immediately
 	if IsTLSLikely(port) {
-		tlsConn, err := upgradeToTLS(conn, host)
+
+		tlsConn, state, err := upgradeToTLS(conn, host)
 		if err != nil {
 			info.Error = err
 			return info
 		}
 		defer tlsConn.Close()
 
+		info.TLS = true
+		populateTLSInfo(&info, state)
+
+		probe := SelectProbe(port)
 		response, err := sendProbe(tlsConn, probe)
-		if err != nil {
-			info.Error = err
-			return info
+		if err == nil && len(response) > 0 {
+			info.Banner = ParseBanner(response)
+			info.Protocol = DetectProtocol(response, port)
 		}
 
-		info.TLS = true
-		info.Banner = ParseBanner(response)
-		info.Protocol = DetectProtocol(response, port)
 		return info
 	}
 
-	// Plain TCP probe
+	// Non-TLS → try passive read
+	initial, _ := readAll(conn)
+	if len(initial) > 0 {
+		info.Banner = ParseBanner(initial)
+		info.Protocol = DetectProtocol(initial, port)
+		return info
+	}
+
+	// Send probe
+	probe := SelectProbe(port)
 	response, err := sendProbe(conn, probe)
 	if err != nil {
 		info.Error = err

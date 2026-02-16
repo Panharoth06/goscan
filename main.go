@@ -4,15 +4,14 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
 	"sync"
-	"time"
 
 	"github.com/Panharoth06/goscanner/v1/pkg/banner"
+	"github.com/Panharoth06/goscanner/v1/ui"
 )
 
 var (
@@ -30,25 +29,23 @@ type Result struct {
 	Service string
 }
 
-// scanner is the worker
-func scanner(ports <-chan int, results chan<- Result, host string, wg *sync.WaitGroup) {
+// start workers
+func scanner(
+	ports <-chan int,
+	results chan<- banner.ServiceInfo,
+	host string,
+	wg *sync.WaitGroup,
+) {
 	defer wg.Done()
 
-	dialer := net.Dialer{
-		Timeout: 800 * time.Millisecond,
-	}
-
 	for port := range ports {
-		address := net.JoinHostPort(host, strconv.Itoa(port))
+		info := banner.GrabService(host, port)
 
-		conn, err := dialer.Dial("tcp", address)
-		if err != nil {
-			continue // closed or filtered
+		if info.Error != nil {
+			continue // closed / filtered / timeout
 		}
 
-		service := banner.GrabService(host, port)
-		results <- Result{Port: port, Open: true, Service: service.Banner}
-		conn.Close()
+		results <- info
 	}
 }
 
@@ -150,7 +147,7 @@ func main() {
 	fmt.Printf("Starting scan of %s — %d common ports with %d workers\n", target, len(ports), worker)
 
 	portsChan := make(chan int, 200)
-	resultsChan := make(chan Result, len(ports))
+	resultsChan := make(chan banner.ServiceInfo, len(ports))
 
 	var wg sync.WaitGroup
 	for i := 0; i < worker; i++ {
@@ -173,7 +170,7 @@ func main() {
 	}()
 
 	// collect & sort results
-	var scanResults []Result
+	var scanResults []banner.ServiceInfo
 	for r := range resultsChan {
 		scanResults = append(scanResults, r)
 	}
@@ -183,12 +180,21 @@ func main() {
 	})
 
 	for _, r := range scanResults {
-		fmt.Printf("Port %d open", r.Port)
-		if r.Service != "" {
-			fmt.Printf(" → %s", r.Service)
+		fmt.Println(ui.GreenText(fmt.Sprintf("Port %d open", r.Port)))
+
+		if r.TLS {
+			fmt.Println("  " + ui.CyanText("TLS Version: ") + r.TLSVersion)
+			fmt.Println("  " + ui.CyanText("Cipher: ") + r.CipherSuite)
+			fmt.Println("  " + ui.CyanText("CN: ") + r.CertCN)
+			fmt.Println("  " + ui.CyanText("Issuer: ") + r.CertIssuer)
+			fmt.Println("  " + ui.CyanText("Expires: ") + r.CertExpiry)
 		}
-		fmt.Println()
+
+		if r.Banner != "" {
+			fmt.Println("  " + ui.CyanText("Banner: ") + r.Banner)
+		}
 	}
 
-	fmt.Printf("Scan finished. %d open ports found.\n", len(scanResults))
+
+	fmt.Println(ui.GreenText(fmt.Sprintf("\n\nScan finished. %d open ports found", len(scanResults))))
 }

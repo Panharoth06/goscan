@@ -5,7 +5,7 @@ import (
 	"net"
 )
 
-func upgradeToTLS(conn net.Conn, host string) (*tls.Conn, error) {
+func upgradeToTLS(conn net.Conn, host string) (*tls.Conn, *tls.ConnectionState, error) {
 	tlsConf := &tls.Config{
 		ServerName:         host,
 		InsecureSkipVerify: true,
@@ -14,10 +14,12 @@ func upgradeToTLS(conn net.Conn, host string) (*tls.Conn, error) {
 	tlsConn := tls.Client(conn, tlsConf)
 
 	if err := tlsConn.Handshake(); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return tlsConn, nil
+	state := tlsConn.ConnectionState()
+
+	return tlsConn, &state, nil
 }
 
 func IsTLSLikely(port int) bool {
