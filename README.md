@@ -1,6 +1,6 @@
-# GoRecon Scanner
+# GoScanner
 
-**GoRecon Scanner** is a lightweight, high-performance network service scanner written in Go.  
+**GoScanner** is a lightweight, high-performance network service scanner written in Go.  
 It performs concurrent port scanning, banner grabbing, and TLS intelligence collection. Its output is colorized for readability.
 
 
